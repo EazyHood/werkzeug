@@ -3,6 +3,9 @@
 Version 3.2.0
 -------------
 
+-   ``make_ssl_devcert`` writes the generated private key with ``0o600``
+    permissions instead of relying on the umask, so it is not world-readable,
+    and avoids following an existing symlink at the key path.
 -   Drop support for Python 3.9 and 3.10. :pr:`3098`
 -   Remove previous deprecated code: :pr:`3099`
 

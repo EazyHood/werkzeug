@@ -23,6 +23,18 @@ from werkzeug.datastructures import FileStorage
 from werkzeug.serving import make_ssl_devcert
 from werkzeug.test import stream_encode_multipart
 
+
+def test_make_ssl_devcert_key_is_private(tmp_path: Path) -> None:
+    """The generated private key must not be world-readable."""
+    pytest.importorskip("cryptography")
+    import stat
+
+    _, pkey_file = make_ssl_devcert(os.fspath(tmp_path / "dev"))
+
+    if os.name == "posix":
+        mode = stat.S_IMODE(os.stat(pkey_file).st_mode)
+        assert mode == 0o600, f"private key mode is {mode:o}, expected 600"
+
 if t.TYPE_CHECKING:
     from conftest import DevServerClient
     from conftest import StartDevServer

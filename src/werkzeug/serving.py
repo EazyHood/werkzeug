@@ -584,7 +584,21 @@ def make_ssl_devcert(
 
     with open(cert_file, "wb") as f:
         f.write(cert.public_bytes(serialization.Encoding.PEM))
-    with open(pkey_file, "wb") as f:
+
+    # The private key must not be world-readable. Create it with 0o600 from the
+    # start instead of relying on the umask (which typically results in 0o644),
+    # and use O_NOFOLLOW where available so an existing symlink at the path is
+    # not followed. generate_adhoc_ssl_context() already stores its key with
+    # 0o600 via tempfile; this keeps make_ssl_devcert() consistent.
+    pkey_fd = os.open(
+        pkey_file,
+        os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0),
+        0o600,
+    )
+    with os.fdopen(pkey_fd, "wb") as f:
+        if hasattr(os, "fchmod"):
+            # Enforce 0o600 even when overwriting an existing key file.
+            os.fchmod(f.fileno(), 0o600)
         f.write(
             pkey.private_bytes(
                 encoding=serialization.Encoding.PEM,
